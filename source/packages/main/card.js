@@ -1,14 +1,14 @@
 import {lib,game,ui,get,ai,_status} from '../../../../../noname.js'
 import {basic} from '../../basic.js'
 export async function card(){
-    if(get.mode()!='uno'){
-        return {};
-    }
     let pack = {
         card:{
             'unocard_plus_two':{
                 enable:(card,player)=>{
                     return get.unoCardEnable(card,player);
+                },
+                audio:(card,sex)=>{
+                    return `../../../${basic.extensionDirectoryPath}resource/audio/card/plus2_male`;
                 },
                 image:card=>{
                     let color = get.color(card,null);
@@ -30,6 +30,9 @@ export async function card(){
                 enable:(card,player)=>{
                     return get.unoCardEnable(card,player);
                 },
+                audio:(card,sex)=>{
+                    return `../../../${basic.extensionDirectoryPath}resource/audio/card/plus4_male`;
+                },
                 image:`${basic.extensionDirectoryPath.replace('extension/','ext:')}resource/image/card/wild_plus_four.jpg`,
                 type:"uno_event",
                 fullskin:false,
@@ -45,6 +48,9 @@ export async function card(){
             "unocard_ban":{
                 enable:(card,player)=>{
                     return get.unoCardEnable(card,player);
+                },
+                audio:(card,sex)=>{
+                    return `../../../${basic.extensionDirectoryPath}resource/audio/card/ban_male`;
                 },
                 image:card=>{
                     let color = get.color(card,null);
@@ -69,8 +75,24 @@ export async function card(){
                 image:`${basic.extensionDirectoryPath.replace('extension/','ext:')}resource/image/card/wild_change.jpg`,
                 type:"uno_event",
                 fullskin:false,
-                content:function(){
-    
+                async content(event,trigger,player){
+                    let colors = ['red','yellow','blue','green'];
+                    let control = await player.chooseControl(['红','黄','蓝','绿'])
+                    .set('prompt',"请选择你要转换的颜色")
+                    .set('ai',function(){
+                        let m = -1;
+                        let mc = '';
+                        colors.forEach(color=>{
+                            let count = player.countCards('h',{color:color});
+                            if(count > m){
+                                mc = color;
+                                m = count;
+                            }
+                        });
+                        return colors.indexOf(mc);
+                    })
+                    .forResultControl();
+                    
                 },
                 ai:{
                     result:{

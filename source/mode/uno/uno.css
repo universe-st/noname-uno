@@ -1,0 +1,10 @@
+.uno-previousCard{
+    position:absolute;
+    background-color:gray;
+    width:200px;
+    height:200px;
+    border-radius:15px;
+    opacity:0.6;
+    left:25%;
+    top:25%;
+  }

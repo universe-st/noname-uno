@@ -17,9 +17,6 @@ export const character = async function(){
             
         },
     };
-    if(get.mode()!='uno'){
-        return pack;
-    }
     if(_status.uno_characterPack){
         return _status.uno_characterPack;
     }
@@ -36,7 +33,7 @@ export const character = async function(){
         }
         pool.push(name);
         pack.character[id] = [sex,['wei','shu','wu','qun'].randomGet(),[3,4].randomGet(),[],
-        [`unoRandomPlayer`,`des:<small>此名称“${name}”由代码在库中随机挑选字符拼凑生成，头像亦为随机选取，不代表作者看法。如有雷同或冒犯，纯属巧合，敬请谅解。</small>`,basic.extensionDirectoryPath.replace('extension/','ext:')+'resource/image/headimage/'+avatar]];
+        [`unoRandomPlayer`,'unseen',`des:<small>此名称“${name}”由代码在库中随机挑选字符拼凑生成，头像亦为随机选取，不代表作者看法。如有雷同或冒犯，纯属巧合，敬请谅解。</small>`,basic.extensionDirectoryPath.replace('extension/','ext:')+'resource/image/headimage/'+avatar]];
         pack.translate[id] = name;
     }
     _status.uno_characterPack = pack;

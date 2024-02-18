@@ -1,8 +1,10 @@
 import {lib,game,ui,get,ai,_status} from '../../../../../noname.js'
-import { character } from '../../packages/main/character.js';
+import { basic } from '../../basic.js';
 export default {
     name:'uno',
     start:function*(event,map){
+        lib.init.css(basic.extensionDirectoryPath+'source/mode/uno','uno');
+        game.createUnoPreviousCardWindow();
         let originalCreateCard = ui.create.card;
         ui.create.card = function(){
             let ret = originalCreateCard.call(ui.create,...arguments);
@@ -28,6 +30,7 @@ export default {
             game.cardsDiscard([firstCard]);
             //console.log(get.color(firstCard));
             if(['red','blue','green','yellow'].includes(get.color(firstCard))){
+                ui.unoCardWin.appendChild(game.createCard(firstCard));
                 break;
             }
         }
@@ -49,6 +52,8 @@ export default {
                 }else if(event.player.countCards('h') == 0){
                     game.over(game.me == event.player);
                 }else{
+                    ui.unoCardWin.innerHTML = '';
+                    ui.unoCardWin.appendChild(game.createCard(result.cards[0]));
                     _status.unoNextColor = get.color(result.cards[0]);
                     _status.unoNextNumber = get.number(result.cards[0]);
                 }
@@ -67,7 +72,10 @@ export default {
         }
     },
     game:{
-        
+        createUnoPreviousCardWindow:function(){
+            ui.unoCardWin = ui.create.div('.uno-previousCard',ui.window);
+            return ui.unoCardWin;
+        }
     },
     get:{
         rawAttitude:function(a,b){

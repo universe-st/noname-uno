@@ -3,10 +3,24 @@ import uno from './mode/uno/uno.js'
 import {config as unoConfig} from './mode/uno/uno.js'
 export async function precontent(config,pack){
     lib.suit.addArray(['unoRed','unoYelow','unoBlue','unoGreen','unoWild']);
-    lib.translate['unoRed'] = '红';
-    lib.translate['unoYellow'] = '黄';
-    lib.translate['unoBlue'] = '蓝';
-    lib.translate['unoGreen'] = '绿';
-    lib.translate['unoWild'] = '万';
+    let translate = {
+        'unoRed':'红',
+        'unoYellow':'黄',
+        'unoBlue':'蓝',
+        'unoGreen':'绿',
+        'unoWild':'万',
+        'green':'绿色',
+        'wild':'万能色',
+        'yellow':'黄色',
+        'blue':'蓝色',
+        'uno_jump':'跳过',
+        'uno_plus2':'罚二',
+        'uno_plus4':'罚四',
+        'uno_tochange_red':'转红',
+        'uno_tochange_yellow':'转黄',
+        'uno_tochange_blue':'转蓝',
+        'uno_tochange_green':'转绿',
+    };
+    Object.keys(translate).forEach(key=>lib.translate[key] = translate[key]);
     game.addMode("uno",uno,unoConfig);
 }

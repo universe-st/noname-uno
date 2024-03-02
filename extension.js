@@ -11,6 +11,7 @@ export let type = 'extension';
 export default async function(){
     const extensionInfo = 
         await lib.init.promises.json(`${lib.assetURL}${basic.extensionDirectoryPath}info.json`);
+    basic.extensionName = extensionInfo.name;
     let extension = {
         name:extensionInfo.name,
         content:content,

@@ -1,10 +1,41 @@
-.uno-previousCard{
-    position:absolute;
-    background-color:gray;
-    width:200px;
-    height:200px;
-    border-radius:15px;
-    opacity:0.6;
-    left:25%;
-    top:25%;
-  }
+.player>.uno-warn{
+    display: block;
+    right: 0px;
+    top: 0px;
+    width: 50px;
+    height: 50px;
+    background-image: url('../../../resource/image/decro/uno.png');
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    z-index: 130;
+}
+
+.player>.uno-ban{
+    display: block;
+    left:calc(50% - 35px);
+    top:calc(50% - 35px);
+    width: 70px;
+    height: 70px;
+    background-image: url('../../../resource/image/decro/ban.png');
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    z-index: 130;
+}
+
+.uno-turn{
+    display: block;
+    left: 50%;
+    top:50%;
+    transform: translate(-50%, -50%) scaleX(-1);
+    width: 400px;
+    height: 400px;
+    background-image: url('../../../resource/image/decro/turn.gif');
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    z-index: 130;
+    opacity: 0.6;
+}
+
+.uno-turn.uno-reverse{
+    transform: translate(-50%, -50%) scaleX(1);
+}

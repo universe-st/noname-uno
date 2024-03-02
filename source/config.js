@@ -5,8 +5,10 @@ export const config = {
         name:'对局音乐',
         intro:'可以更改对局音乐。',
         item:{
+            'follow':'跟随无名杀',
             'daokoudewangpai':'倒扣的王牌',
-            'follow':'跟随无名杀'
+            'youxiwang':'热烈的决斗者',
+            'doudizhu':'斗地主',
         },
         init:'daokoudewangpai',
         onclick:function(item){
@@ -15,7 +17,7 @@ export const config = {
                 delete _status.tempMusic;
                 game.playBackgroundMusic();
             }else{
-                let url = `ext:${basic.extensionName}/resource/audio/bgm/${bgm}.mp3`;
+                let url = `ext:${basic.extensionName}/resource/audio/bgm/${item}.mp3`;
                 _status.tempMusic = url;
                 game.playBackgroundMusic();
             }

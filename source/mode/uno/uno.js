@@ -22,9 +22,24 @@ function prepareMusic(){
     game.playBackgroundMusic();
 }
 
+function prepareCardback(){
+    var style=ui.css.cardback_style;
+    ui.css.cardback_style=lib.init.css(basic.extensionDirectoryPath+'source/mode/uno','cardback');
+    style.remove();
+    if(ui.css.cardback_stylesheet){
+        ui.css.cardback_stylesheet.remove();
+        delete ui.css.cardback_stylesheet;
+    }
+    if(ui.css.cardback_stylesheet2){
+        ui.css.cardback_stylesheet2.remove();
+        delete ui.css.cardback_stylesheet2;
+    }
+}
+
 export default {
     name:'uno',
     start:function*(event,map){
+        prepareCardback();
         _status.uno = true;
         _status.unoDirection = 'next';
         prepareMusic();
@@ -163,7 +178,7 @@ export default {
                     return;
                 }
                 let prompt = `你需要打出一张颜色为
-                ${get.translation(_status.unoNextColor)}
+                <span style='color:${_status.unoNextColor}'>${get.translation(_status.unoNextColor)}</span>
                 或者${typeof _status.unoNextNumber == 'number'?'点数':'牌类型'}
                 为${get.translation(_status.unoNextNumber)}的牌，否则你摸一张牌。`;
                 let result = yield event.player.chooseToUse()

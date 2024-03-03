@@ -1,5 +1,6 @@
 import {lib,game,ui,get,ai,_status} from '../../../../../noname.js'
 import { basic } from '../../basic.js';
+import { musicItem } from '../../config.js';
 
 function initUnoCard(){
     let originalCreateCard = ui.create.card;
@@ -15,10 +16,15 @@ function initUnoCard(){
 }
 
 function prepareMusic(){
-    let bgm = game.getExtensionConfig(basic.extensionName,'uno_bgm');
+    let bgm = game.getExtensionConfig(basic.getExtensionName(),'uno_bgm');
     if(bgm == 'follow')return;
-    let url = `ext:${basic.extensionName}/resource/audio/bgm/${bgm}.mp3`;
-    _status.tempMusic = url;
+    if(bgm != 'random'){
+        let url = `ext:${basic.getExtensionName()}/resource/audio/bgm/${bgm}.mp3`;
+        _status.tempMusic = url;
+    }else{
+        _status.tempMusic = Object.keys(musicItem).filter(item=>item!='random' && item !='follow')
+        .map(item=>`ext:${basic.getExtensionName()}/resource/audio/bgm/${item}.mp3`);
+    }
     game.playBackgroundMusic();
 }
 
@@ -51,7 +57,7 @@ export default {
         lib.card.list = get.unoCardPile();
         let playerNum = get.config('player_num');
         if(typeof playerNum == 'string')playerNum = parseInt(playerNum);
-        if(typeof playerNum != 'number'|| isNaN(playerNum) || playerNum <= 3){
+        if(typeof playerNum != 'number'|| isNaN(playerNum) || playerNum < 3){
             playerNum = 4;
         }
         game.prepareArena(playerNum);
@@ -78,6 +84,19 @@ export default {
         yield game.phaseLoop(game.players.randomGet());
     },
     skill:{
+        _uno_check:{
+            direct:true,
+            popup:false,
+            trigger:{
+                player:'useCard',
+            },
+            filter:function(event,player){
+                return player.countCards('h') == 0;
+            },
+            async content(event,trigger,player){
+                game.over(player == game.me);
+            }
+        },
         _uno_warn:{
             direct:true,
             popup:false,
@@ -167,8 +186,34 @@ export default {
             phase:function*(event,map){
                 if(event.player.isBanned()){
                     game.log(event.player,"跳过本次出牌。");
-                    event.player.setBan(false);
                     game.logv(event.player,"uno_jump");
+                    game.playUnoEffect('ban');
+                    game.delay(2);
+                    yield;
+                    event.player.setBan(false);
+                    return;
+                }
+                if(_status.unoPlusAdd){
+                    let prompt = `你可以打出一张叠加牌，将罚抽数字累加。否则你摸${_status.unoPlusAdd}张牌。`;
+                    let result = yield event.player.chooseToUse()
+                    .set('prompt',prompt)
+                    .set('ai2',()=>{return 1;});
+                    if(result.bool){
+                        let color = get.color(result.cards[0]);
+                        if(color != 'wild'){
+                            _status.unoNextColor = get.color(result.cards[0]);
+                        }
+                        _status.unoNextNumber = get.unoNumber(result.cards[0]);
+                    }else{
+                        event.player.popup('罚摸');
+                        event.player.$fullscreenpop(`摸${get.cnNumber(_status.unoPlusAdd)}张`,'fire');
+                        if(_status.unoPlusAdd >= 5){
+                            game.playUnoEffect('ganga');
+                        }
+                        game.delay(3);
+                        yield event.player.draw(_status.unoPlusAdd);
+                        _status.unoPlusAdd = 0;
+                    }
                     return;
                 }
                 if(event.player.getToDraw()){
@@ -187,15 +232,32 @@ export default {
                 })
                 .set('prompt',prompt);
                 if(!result.bool){
-                    yield event.player.draw();
-                }else if(event.player.countCards('h') == 0){
-                    game.over(game.me == event.player);
-                }else{
+                    let cards = yield event.player.draw();
+                    if(cards.filter((card)=>{
+                        return get.unoCardEnable(card,event.player);
+                    }).length){
+                        let prompt = "你可以直接打出此牌。";
+                        result = yield event.player.chooseToUse()
+                        .set('filterCard',function(card,player,event){
+                            if(!cards.includes(card))return false;
+                            return lib.filter.filterCard.apply(null,arguments);
+                        })
+                        .set('ai2',function(){
+                            return 1;
+                        })
+                        .set('prompt',prompt);
+                    }
+                }
+                if(result.bool){
                     let color = get.color(result.cards[0]);
                     if(color != 'wild'){
                         _status.unoNextColor = get.color(result.cards[0]);
                     }
-                    _status.unoNextNumber = get.unoNumber(result.cards[0]);
+                    if(!_status.doubtSuccess){
+                        _status.unoNextNumber = get.unoNumber(result.cards[0]);
+                    }else{
+                        _status.doubtSuccess = false;
+                    }
                 }
             },
             phaseLoop:function*(event,map){
@@ -212,7 +274,7 @@ export default {
     game:{
         playUnoEffect:function(name,sex){
             if(sex)name = `${name}_${sex}`;
-            game.playAudio(`ext:${basic.extensionName}/resource/audio/effect/${name}.mp3`);
+            game.playAudio(`ext:${basic.getExtensionName()}/resource/audio/effect/${name}.mp3`);
         }
     },
     get:{
@@ -237,6 +299,10 @@ export default {
             return 'none';
         },
         unoCardEnable:function(card,player){
+            if(_status.unoPlusAdd){
+                let info = get.info(card);
+                return info.plusCard;
+            }
             let color = get.color(card);
             if(_status.unoNextColor == color)return true;
             if(color == 'wild')return true;
@@ -305,6 +371,28 @@ export const config = {
                 16:'十六人',
             },
             init:4,
+        },
+        'plus_rules':{
+            name:"罚摸规则",
+            intro:`<ul>
+            <li><b>质疑规则</b>：+4牌要求在手牌中没有和参照牌同色的牌时才能打出。
+            打出时，下家可以选择质疑其是否违规，被质疑需要展示所有手牌。
+            质疑成功，则违规者摸四张牌。质疑失败，则质疑者除罚抽的四张牌外额外摸两张牌。</li>
+            <li><b>叠加规则</b>：叠加规则下，不限制+4牌的打出。加号牌后可以直接打出加号牌避免罚摸，并叠加罚摸牌数，直到有玩家没有加号牌打出位置，该玩家摸叠加数的牌。</li>
+            <li><b>宽松规则</b>：不对+4牌的使用作限制。</li>
+            <li><b>严格规则</b>：由系统限制+4牌的使用。</li>
+            </ul>`,
+            init:'doubt',
+            item:{
+                "doubt":"质疑规则",
+                "add":"叠加规则",
+                "loose":"宽松规则",
+                "strict":"严格规则",
+            },
+            onclick:function(item){
+                game.saveConfig('plus_rules',item,'uno');
+                game.reload();
+            }
         }
     }
 };

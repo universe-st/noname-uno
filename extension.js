@@ -1,3 +1,4 @@
+//game.import( name:"优诺牌"
 import {lib,game,ui,get,ai,_status} from '../../noname.js'
 import {content} from './source/content.js'
 import {precontent} from './source/precontent.js'
@@ -10,7 +11,7 @@ export let type = 'extension';
 
 export default async function(){
     const extensionInfo = 
-        await lib.init.promises.json(`${lib.assetURL}${basic.extensionDirectoryPath}info.json`);
+        await lib.init.promises.json(`${basic.extensionDirectoryPath}info.json`);
     basic.extensionName = extensionInfo.name;
     let extension = {
         name:extensionInfo.name,
@@ -24,5 +25,6 @@ export default async function(){
     Object.keys(extensionInfo)
     .filter(key=>key!='name')
     .forEach(key=>extension.package[key]=extensionInfo[key]);
+    extension.package.intro = `${extensionInfo.intro}<br><br>关注《无名杀扩展交流》公众号，获取更多扩展信息。<img style='width:238px' src='${basic.extensionDirectoryPath}resource/image/others/gzh.jpg'/>`;
     return extension;    
 }

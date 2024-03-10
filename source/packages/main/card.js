@@ -13,6 +13,7 @@ export async function card(){
                     if(color == 'none') color = null;
                     return `${basic.getExtensionRelativePath().replace('extension/','ext:')}resource/image/card/${(card&&color)?color:'yellow'}_plus_two.jpg`;
                 },
+                score:20,
                 type:"uno_event",
                 fullskin:false,
                 selectTarget:-1,
@@ -52,6 +53,7 @@ export async function card(){
                     if(get.config('plus_rules') != 'strict')return true;
                     return player.hasCard((card)=>{return get.color(card) == _status.unoNextColor;},'h');
                 },
+                score:50,
                 audio:(card,sex)=>{
                     return `../../../${basic.getExtensionRelativePath()}resource/audio/card/plus4_male`;
                 },
@@ -130,6 +132,7 @@ export async function card(){
                 audio:(card,sex)=>{
                     return `../../../${basic.getExtensionRelativePath()}resource/audio/card/ban_male`;
                 },
+                score:20,
                 image:card=>{
                     let color = get.color(card,null);
                     if(color == 'none') color = null;
@@ -165,6 +168,7 @@ export async function card(){
                 audio:(card,sex)=>{
                     return `../../../${basic.getExtensionRelativePath()}resource/audio/card/wanneng_male`;
                 },
+                score:50,
                 image:`${basic.getExtensionRelativePath().replace('extension/','ext:')}resource/image/card/wild_change.jpg`,
                 type:"uno_event",
                 fullskin:false,
@@ -190,6 +194,7 @@ export async function card(){
                     if(color == 'none') color = null;
                     return `${basic.getExtensionRelativePath().replace('extension/','ext:')}resource/image/card/${(card&&color)?color:'blue'}_turn.jpg`;
                 },
+                score:20,
                 type:"uno_event",
                 fullskin:false,
                 notarget:true,
@@ -244,6 +249,7 @@ export async function card(){
             enable:(card,player)=>{
                 return get.unoCardEnable(card,player);
             },
+            score:i,
             image:card=>{
                 let color = get.color(card,null);
                 if(color == 'none') color = ['blue','red','green','yellow'].randomGet();

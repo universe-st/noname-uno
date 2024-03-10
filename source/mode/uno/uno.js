@@ -1,6 +1,7 @@
 import {lib,game,ui,get,ai,_status} from '../../../../../noname.js'
 import { basic } from '../../basic.js';
 import { musicItem } from '../../config.js';
+import { unoConfig } from './config.js';
 
 function initUnoCard(){
     let originalCreateCard = ui.create.card;
@@ -42,10 +43,39 @@ function prepareCardback(){
     }
 }
 
+function prepareCardSuit(){
+    lib.suit.addArray(['unoRed','unoYelow','unoBlue','unoGreen','unoWild']);
+    let translate = {
+        'unos_red':`<span style='color:red;'>红</span>`,
+        'unos_yellow':`<span style='color:yellow;'>黄</span>`,
+        'unos_blue':`<span style='color:blue;'>蓝</span>`,
+        'unos_green':`<span style='color:green;'>绿</span>`,
+        'unoRed':'红',
+        'unoYellow':'黄',
+        'unoBlue':'蓝',
+        'unoGreen':'绿',
+        'unoWild':'万',
+        'green':'绿色',
+        'wild':'万能色',
+        'yellow':'黄色',
+        'blue':'蓝色',
+        'uno_jump':'跳过',
+        'uno_plus2':'罚二',
+        'uno_plus4':'罚四',
+        'first_card':'首牌',
+        'uno_tochange_red':'转红',
+        'uno_tochange_yellow':'转黄',
+        'uno_tochange_blue':'转蓝',
+        'uno_tochange_green':'转绿',
+    };
+    Object.keys(translate).forEach(key=>lib.translate[key] = translate[key]);
+}
+
 export default {
     name:'uno',
     start:function*(event,map){
         prepareCardback();
+        prepareCardSuit();
         _status.uno = true;
         _status.unoDirection = 'next';
         prepareMusic();
@@ -66,11 +96,13 @@ export default {
         game.players.forEach(player=>{
             player.getId();
             player.init(arr.shift());
+            player.initScore();
         });
         let firstCard = null;
+        let firstPlayer = game.players.randomGet();
         while(true){
             firstCard = get.cards(1)[0];
-            yield game.me.showCards([firstCard],"第一张牌");
+            yield firstPlayer.showCards([firstCard],"第一张牌");
             game.cardsDiscard([firstCard]);
             //console.log(get.color(firstCard));
             let num = get.unoNumber(firstCard);
@@ -78,10 +110,12 @@ export default {
                 break;
             }
         }
-        yield game.gameDraw(game.me);
+        game.logv(firstPlayer,'first_card');
+        game.logv(firstPlayer,[firstCard,[firstCard]]);
+        yield game.gameDraw(game.me,get.beginCardCount());
         _status.unoNextColor = get.color(firstCard);
         _status.unoNextNumber = get.unoNumber(firstCard);
-        yield game.phaseLoop(game.players.randomGet());
+        yield game.phaseLoop(firstPlayer);
     },
     skill:{
         _uno_check:{
@@ -94,7 +128,12 @@ export default {
                 return player.countCards('h') == 0;
             },
             async content(event,trigger,player){
-                game.over(player == game.me);
+                trigger.all_excluded =true;
+                if(get.winScore() == 0){
+                    game.over(game.me == player);
+                }else{
+                    player.endPart();
+                }
             }
         },
         _uno_warn:{
@@ -104,6 +143,7 @@ export default {
                 player:['loseEnd','gainEnd'],
             },
             filter:function(event,player){
+                if(_status.isEndingPart)return false;
                 if(event.name == 'lose'){
                     return player.countCards('h') <= 1;
                 }else{
@@ -120,6 +160,28 @@ export default {
     },
     element:{
         player:{
+            endPart:function(){
+                let next = game.createEvent('endPart');
+                next.player = this;
+                next.setContent('endPart');
+                return next;
+            },
+            getScore:function(){
+                if(typeof this.storage.uno_score == 'number')return this.storage.uno_score;
+                return 0;
+            },
+            initScore:function(){
+                this.node.score = ui.create.div('.uno-score',this);
+                this.storage.uno_score = 0;
+                this.refreshScore();
+            },
+            refreshScore:function(){
+                this.node.score.innerHTML = "积分："+this.storage.uno_score;
+            },
+            addScore:function(num){
+                this.storage.uno_score+=num;
+                this.refreshScore();
+            },
             chooseToChangeColor:function(){
                 let next = game.createEvent('chooseToChangeColor');
                 next.player = this;
@@ -160,30 +222,95 @@ export default {
             }
         },
         content:{
+            endPart:function*(event,map){
+                _status.isEndingPart = true;
+                game.playUnoEffect('success');
+                let player = event.player;
+                player.$fullscreenpop('结算积分','fire');
+                let players = game.players.slice(0);
+                players.sortBySeat();
+                for(let p of players){
+                    if(p!=player){
+                        yield p.give(p.getCards('h'),player);
+                    }
+                    p.setBan(false);
+                    p.setToDraw(0);
+                }
+                let sum = 0;
+                for(let c of player.getCards('h')){
+                    game.delay(1);
+                    yield player.lose(c);
+                    player.$throw(c);
+                    let info = get.info(c);
+                    if(info && info.score){
+                        sum+=info.score;
+                        player.popup('+'+info.score);
+                        player.addScore(info.score);
+                        game.playUnoEffect('score');
+                    }
+                }
+                if(player.getScore() >= get.winScore()){
+                    game.over(player == game.me);
+                }else{
+                    player.$fullscreenpop('积分+'+sum+'，游戏继续','fire');
+                    game.delay(3);
+                    yield;
+                    yield game.gameDraw(player,get.beginCardCount());
+                    let firstCard = null;
+                    while(true){
+                        firstCard = get.cards(1)[0];
+                        yield game.me.showCards([firstCard],"第一张牌");
+                        game.cardsDiscard([firstCard]);
+                        //console.log(get.color(firstCard));
+                        let num = get.unoNumber(firstCard);
+                        if(typeof num == 'number' && num >=0 && num<=9 && ['red','blue','green','yellow'].includes(get.color(firstCard))){
+                            break;
+                        }
+                    }
+                    game.logv(player,'first_card');
+                    game.logv(player,[firstCard,[firstCard]]);
+                    _status.unoNextColor = get.color(firstCard);
+                    _status.unoNextNumber = get.unoNumber(firstCard);
+                    _status.unoDirection = 'next';
+                    ui.unoDirection.classList.remove('uno-reverse');
+                    _status.newBegin = player;
+                    _status.unoPlusAdd = 0;
+                    game.players.forEach(p=>p.refreshUnoState());
+                }
+                delete _status.isEndingPart;
+                
+            },
             chooseToChangeColor:function*(event,map){
                 let player = event.player;
-                let colors = ['red','yellow','blue','green'];
+                let colors = ['unos_red','unos_yellow','unos_blue','unos_green'];
                 let {control} = yield player.chooseControl(colors)
                     .set('prompt',"请选择你要转换的颜色")
                     .set('ai',function(){
                         let m = -1;
                         let mc = '';
+                        let mcList = [];
                         colors.forEach(color=>{
-                            let count = player.countCards('h',{color:color});
-                            if(count > m){
+                            let count = player.countCards('h',{color:color.slice(5)});
+                            if(count >= m){
                                 mc = color;
+                                if(count != m){
+                                    mcList.splice(0,mcList.length);
+                                }
                                 m = count;
+                                mcList.add(mc);
                             }
                         });
-                        return colors.indexOf(mc);
+                        return colors.indexOf(mcList.randomGet());
                 });
                 game.log(player,'选择了',control);
+                control = control.slice(5);
                 _status.unoNextColor = control;
                 game.logv(player,'uno_tochange_'+control);
                 game.playUnoEffect('change_'+control+'_male');
                 player.say(get.translation(control));
             },
             phase:function*(event,map){
+                //console.log('inPhase:'+get.translation(event.player));
                 if(event.player.isBanned()){
                     game.log(event.player,"跳过本次出牌。");
                     game.logv(event.player,"uno_jump");
@@ -231,6 +358,9 @@ export default {
                     return 1;
                 })
                 .set('prompt',prompt);
+                if(_status.newBegin == event.player){
+                    return;
+                }
                 if(!result.bool){
                     let cards = yield event.player.draw();
                     if(cards.filter((card)=>{
@@ -248,6 +378,9 @@ export default {
                         .set('prompt',prompt);
                     }
                 }
+                if(_status.newBegin == event.player){
+                    return;
+                }
                 if(result.bool){
                     let color = get.color(result.cards[0]);
                     if(color != 'wild'){
@@ -261,10 +394,21 @@ export default {
                 }
             },
             phaseLoop:function*(event,map){
-                let player = event.player;
                 while(!_status.over){
+                    let player;
+                    if(_status.newBegin){
+                        event.player = _status.newBegin;
+                        player = _status.newBegin;
+                        delete _status.newBegin;
+                        //console.log('nb:'+get.translation(player));
+                    }else{
+                        player = event.player;
+                    }
+                    //console.log(get.translation(player));
                     player.classList.add('glow_phase');
+                    //console.log('begin:'+get.translation(player));
                     yield player.phase();
+                    //console.log('end:'+get.translation(player));
                     player.classList.remove('glow_phase');
                     player = event.player = player.getUnoNext();
                 }
@@ -278,6 +422,18 @@ export default {
         }
     },
     get:{
+        winScore:function(){
+            let count = get.config('win_score');
+            count = parseInt(count);
+            if(isNaN(count))return 200;
+            return count;
+        },
+        beginCardCount:function(){
+            let count = get.config('begin_card_count');
+            count = parseInt(count);
+            if(isNaN(count))return 4;
+            return count;
+        },
         unoNumber:function(card){
             if(typeof card.number == 'number' && card.number >= 0 && card.number <= 9){
                 return get.number(card);
@@ -351,48 +507,5 @@ export default {
 
 export const config = {
     translate:"优诺牌",
-    config:{
-        'player_num':{
-            name:"游戏人数",
-            item:{
-                3:'三人',
-                4:'四人',
-                5:'五人',
-                6:'六人',
-                7:'七人',
-                8:'八人',
-                9:'九人',
-                10:'十人',
-                11:'十一人',
-                12:'十二人',
-                13:'十三人',
-                14:'十四人',
-                15:'十五人',
-                16:'十六人',
-            },
-            init:4,
-        },
-        'plus_rules':{
-            name:"罚摸规则",
-            intro:`<ul>
-            <li><b>质疑规则</b>：+4牌要求在手牌中没有和参照牌同色的牌时才能打出。
-            打出时，下家可以选择质疑其是否违规，被质疑需要展示所有手牌。
-            质疑成功，则违规者摸四张牌。质疑失败，则质疑者除罚抽的四张牌外额外摸两张牌。</li>
-            <li><b>叠加规则</b>：叠加规则下，不限制+4牌的打出。加号牌后可以直接打出加号牌避免罚摸，并叠加罚摸牌数，直到有玩家没有加号牌打出位置，该玩家摸叠加数的牌。</li>
-            <li><b>宽松规则</b>：不对+4牌的使用作限制。</li>
-            <li><b>严格规则</b>：由系统限制+4牌的使用。</li>
-            </ul>`,
-            init:'doubt',
-            item:{
-                "doubt":"质疑规则",
-                "add":"叠加规则",
-                "loose":"宽松规则",
-                "strict":"严格规则",
-            },
-            onclick:function(item){
-                game.saveConfig('plus_rules',item,'uno');
-                game.reload();
-            }
-        }
-    }
+    config:unoConfig,
 };

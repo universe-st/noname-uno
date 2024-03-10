@@ -1,3 +1,15 @@
+.player>.uno-score{
+    display: block;
+    top:0px;
+    width: 100%;
+    left: 0px;
+    height: 30px;
+    color:white;
+    font-size: 20px;
+    font-family: 'yuanli';
+    text-align: center;
+    z-index: 131;
+}
 .player>.uno-warn{
     display: block;
     right: 0px;

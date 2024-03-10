@@ -13,6 +13,7 @@ export let musicItem = {
     'ruyiling':'如意令',
     'zhuzhiqu':'竹枝曲',
     'huanyu':'欢愉',
+    'blissful_little_ditty':'谐惬的俚曲',
 };
 export const config = {
     'uno_bgm':{

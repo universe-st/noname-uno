@@ -2,7 +2,7 @@
     "name":"优诺牌",
     "author":"寰宇星城",
     "intro":"UNO是一种桌游。玩家需在出剩最后1张牌时喊出”UNO“，故而得名。它是西班牙语/意大利语中“1”的意思。UNO流行于全世界。",
-    "version":"1.0.5",
+    "version":"1.0.6.1",
     "diskURL":"https://github.com/universe-st/noname-uno",
     "forumURL":""
 }

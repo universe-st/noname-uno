@@ -14,6 +14,14 @@ function initUnoCard(){
         if(ret.$suitnum)ret.$suitnum.hide();
         return ret;
     };
+    let originCardInit = lib.element.card.init;
+    lib.element.card.init = function(){
+        let ret = originCardInit.call(this,...arguments);
+        if(!window.decadeUI){
+            this.style.backgroundSize = "100% 100%";
+        }
+        return ret;
+    };
 }
 
 function prepareMusic(){
